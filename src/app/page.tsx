@@ -1,103 +1,129 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useEffect, useState } from "react";
+import { fetchTrendingMovies } from "@/lib/tmdb";
+import { motion } from "framer-motion";
+import Link from "next/link";
+
+export default function HomePage() {
+  const [movies, setMovies] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentBanner, setCurrentBanner] = useState(0);
+
+  useEffect(() => {
+    async function getMovies() {
+      try {
+        const data = await fetchTrendingMovies();
+        setMovies(data.results || []);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    getMovies();
+  }, []);
+
+  // auto-slide banner setiap 5 detik
+  useEffect(() => {
+    if (movies.length > 0) {
+      const interval = setInterval(() => {
+        setCurrentBanner((prev) => (prev + 1) % movies.length);
+      }, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [movies]);
+
+  if (loading)
+    return <p className="p-4 text-white bg-gray-900">Loading movies...</p>;
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <main className="bg-gray-900 min-h-screen text-white">
+      <div className="container mx-auto px-4 py-8">
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+        {/* Banner Slider */}
+        {movies.length > 0 && (
+          <div className="relative w-full h-[400px] mb-8 overflow-hidden rounded-xl">
+            {movies.slice(0, 5).map((movie, index) => (
+              <motion.div
+                key={movie.id}
+                className={`absolute inset-0 w-full h-full transition-opacity duration-700 ${
+                  index === currentBanner ? "opacity-100" : "opacity-0"
+                }`}
+              >
+                {movie.backdrop_path ? (
+                  <img
+                    src={`https://image.tmdb.org/t/p/original${movie.backdrop_path}`}
+                    alt={movie.title}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-700 flex items-center justify-center">
+                    No Image
+                  </div>
+                )}
+
+                {/* Overlay teks */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent flex items-end p-6">
+                  <div>
+                    <h2 className="text-2xl font-bold">{movie.title}</h2>
+                    <p className="text-sm text-gray-300 line-clamp-2 max-w-2xl">
+                      {movie.overview}
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+
+            {/* Indicator dots */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+              {movies.slice(0, 5).map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentBanner(index)}
+                  className={`w-3 h-3 rounded-full ${
+                    currentBanner === index ? "bg-white" : "bg-gray-500"
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Grid poster */}
+        <h1 className="text-2xl font-bold mb-6">Trending Movies</h1>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          {movies.map((movie) => (
+            <Link
+              href={`/movie/${movie.id}`}
+              key={movie.id}
+              className="group relative overflow-hidden rounded-lg"
+            >
+              {movie.poster_path ? (
+                <motion.img
+                  src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
+                  alt={movie.title}
+                  className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
+                  whileHover={{ scale: 1.05 }}
+                />
+              ) : (
+                <div className="bg-gray-700 h-60 flex items-center justify-center">
+                  No Image
+                </div>
+              )}
+
+              {/* Overlay muncul saat hover */}
+              <motion.div
+                className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                initial={{ opacity: 0 }}
+                whileHover={{ opacity: 1 }}
+              >
+                <p className="text-sm text-center px-2">{movie.title}</p>
+              </motion.div>
+            </Link>
+          ))}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      </div>
+    </main>
   );
 }
