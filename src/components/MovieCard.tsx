@@ -1,31 +1,36 @@
 "use client";
 
-import Link from "next/link";
+import Image from "next/image";
+import NoImage from "./NoImage";
 
 interface MovieCardProps {
-  id: number;
-  title: string;
-  posterPath: string;
-  rating: number;
+  movie: any;
+  type?: "movie" | "tv";
 }
 
-const MovieCard: React.FC<MovieCardProps> = ({ id, title, posterPath, rating }) => {
-  return (
-    <Link
-      href={`/movie/${id}`}
-      className="bg-gray-900 rounded-xl overflow-hidden shadow-md hover:shadow-lg hover:scale-[1.03] transition-all duration-200"
-    >
-      <img
-        src={`https://image.tmdb.org/t/p/w500${posterPath}`}
-        alt={title}
-        className="w-full h-[350px] object-cover"
-      />
-      <div className="p-3">
-        <h3 className="text-white font-semibold text-sm line-clamp-1">{title}</h3>
-        <p className="text-yellow-400 text-sm mt-1">⭐ {rating.toFixed(1)}</p>
-      </div>
-    </Link>
-  );
-};
+export default function MovieCard({ movie, type = "movie" }: MovieCardProps) {
+  const title = type === "tv" ? movie.name : movie.title;
+  const date =
+    type === "tv" ? movie.first_air_date : movie.release_date;
 
-export default MovieCard;
+  return (
+    <div className="border rounded overflow-hidden shadow hover:shadow-lg transition">
+      {movie.poster_path ? (
+        <Image
+          src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
+          alt={title || "Untitled"}
+          width={500}
+          height={750}
+          className="w-full h-72 object-cover"
+        />
+      ) : (
+        <NoImage className="w-full h-72" />
+      )}
+
+      <div className="p-2">
+        <h3 className="font-semibold text-sm line-clamp-1">{title}</h3>
+        <p className="text-xs text-gray-500">{date || "Unknown"}</p>
+      </div>
+    </div>
+  );
+}

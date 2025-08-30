@@ -1,61 +1,159 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { fetchTrendingMovies } from "@/lib/tmdb";
+import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
+import Image from "next/image";
+import TrailerModal from "@/components/TrailerModal";
+import NoImage from "@/components/NoImage";
 
-interface BannerProps {
-  movies: any[];
-}
+export default function HomePage() {
+  const [movies, setMovies] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentBanner, setCurrentBanner] = useState(0);
 
-export default function Banner({ movies }: BannerProps) {
-  const [current, setCurrent] = useState(0);
+  // Modal trailer
+  const [isTrailerOpen, setIsTrailerOpen] = useState(false);
+  const [trailerKey, setTrailerKey] = useState<string | null>(null);
 
+  useEffect(() => {
+    async function getMovies() {
+      try {
+        const data = await fetchTrendingMovies();
+        setMovies(data.results || []);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    getMovies();
+  }, []);
+
+  // Auto slide banner tiap 5 detik
   useEffect(() => {
     if (movies.length === 0) return;
     const interval = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % movies.length);
-    }, 5000); // ganti slide tiap 5 detik
+      setCurrentBanner((prev) => (prev + 1) % movies.length);
+    }, 5000);
     return () => clearInterval(interval);
   }, [movies]);
 
-  if (movies.length === 0) return null;
+  // Fetch trailer
+  const handlePlayTrailer = async (movieId: number) => {
+    try {
+      const res = await fetch(
+        `https://api.themoviedb.org/3/movie/${movieId}/videos?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}&language=en-US`
+      );
+      const data = await res.json();
+      const trailer = data.results.find(
+        (vid: any) => vid.type === "Trailer" && vid.site === "YouTube"
+      );
+      setTrailerKey(trailer ? trailer.key : null);
+      setIsTrailerOpen(true);
+    } catch (error) {
+      console.error("Error fetching trailer:", error);
+      setTrailerKey(null);
+      setIsTrailerOpen(true);
+    }
+  };
+
+  if (loading)
+    return <p className="p-4 text-white bg-gray-900">Loading movies...</p>;
+
+  const currentMovie = movies[currentBanner];
 
   return (
-    <div className="relative w-full h-[60vh] md:h-[70vh] mb-8 overflow-hidden rounded-lg">
-      {movies.map((movie, index) => (
-        <div
-          key={movie.id}
-          className={`absolute inset-0 transition-opacity duration-1000 ${
-            index === current ? "opacity-100 z-10" : "opacity-0 z-0"
-          }`}
-        >
-          <img
-            src={`https://image.tmdb.org/t/p/original${movie.backdrop_path}`}
-            alt={movie.title}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex items-end p-6">
-            <div>
-              <h2 className="text-2xl md:text-4xl font-bold">{movie.title}</h2>
-              <p className="text-sm md:text-base text-gray-300 max-w-2xl mt-2 line-clamp-3">
-                {movie.overview}
-              </p>
+    <main className="bg-gray-900 min-h-screen text-white">
+      {/* Banner Section */}
+      {currentMovie && (
+        <div className="relative w-full h-[70vh] overflow-hidden">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentMovie.id}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.8 }}
+              className="absolute inset-0"
+            >
+              {currentMovie.backdrop_path ? (
+                <Image
+                  src={`https://image.tmdb.org/t/p/original${currentMovie.backdrop_path}`}
+                  alt={currentMovie.title}
+                  fill
+                  priority
+                  className="object-cover"
+                />
+              ) : (
+                <NoImage className="w-full h-full" alt={currentMovie.title} />
+              )}
+            </motion.div>
+          </AnimatePresence>
+
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
+          <div className="absolute bottom-10 left-8 max-w-xl">
+            <h2 className="text-3xl md:text-5xl font-bold mb-4">
+              {currentMovie.title}
+            </h2>
+            <p className="mb-4 line-clamp-3">{currentMovie.overview}</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => handlePlayTrailer(currentMovie.id)}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg"
+              >
+                ▶ Play Trailer
+              </button>
+              <Link
+                href={`/movie/${currentMovie.id}`}
+                className="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-lg"
+              >
+                Details
+              </Link>
             </div>
           </div>
         </div>
-      ))}
+      )}
 
-      {/* indikator bulat */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-        {movies.map((_, index) => (
-          <button
-            key={index}
-            className={`w-3 h-3 rounded-full ${
-              index === current ? "bg-white" : "bg-gray-500"
-            }`}
-            onClick={() => setCurrent(index)}
-          />
-        ))}
+      {/* Grid poster */}
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-2xl font-bold mb-6">Trending Movies</h1>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          {movies.map((movie) => (
+            <Link
+              href={`/movie/${movie.id}`}
+              key={movie.id}
+              className="group relative overflow-hidden rounded-lg"
+            >
+              {movie.poster_path ? (
+                <motion.img
+                  src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
+                  alt={movie.title}
+                  className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
+                  whileHover={{ scale: 1.05 }}
+                />
+              ) : (
+                <NoImage className="w-full h-auto" alt={movie.title} />
+              )}
+              <motion.div
+                className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                initial={{ opacity: 0 }}
+                whileHover={{ opacity: 1 }}
+              >
+                <p className="text-sm text-center px-2">{movie.title}</p>
+              </motion.div>
+            </Link>
+          ))}
+        </div>
       </div>
-    </div>
+
+      {/* Trailer Modal */}
+      <TrailerModal
+        isOpen={isTrailerOpen}
+        onClose={() => setIsTrailerOpen(false)}
+        trailerKey={trailerKey}
+      />
+    </main>
   );
 }

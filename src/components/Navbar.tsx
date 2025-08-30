@@ -2,21 +2,24 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Menu, X, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [showNavbar, setShowNavbar] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+  const router = useRouter();
 
   // Auto-hide navbar saat scroll
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > lastScrollY && window.scrollY > 50) {
-        setShowNavbar(false); // scroll down → sembunyi
+        setShowNavbar(false);
       } else {
-        setShowNavbar(true); // scroll up → muncul lagi
+        setShowNavbar(true);
       }
       setLastScrollY(window.scrollY);
     };
@@ -25,7 +28,6 @@ const Navbar = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [lastScrollY]);
 
-  // Variants untuk stagger animation
   const menuVariants = {
     hidden: { opacity: 0, y: -20 },
     visible: {
@@ -41,9 +43,18 @@ const Navbar = () => {
     visible: { opacity: 1, y: 0 },
   };
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/search?query=${encodeURIComponent(searchQuery)}`);
+      setSearchQuery(""); // reset setelah search
+      setIsOpen(false); // tutup menu mobile
+    }
+  };
+
   return (
     <motion.nav
-      initial={{ opacity: 0, y: -20 }} // fade-in + slide
+      initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: showNavbar ? 0 : -80 }}
       transition={{
         type: "spring",
@@ -59,7 +70,7 @@ const Navbar = () => {
       </Link>
 
       {/* Desktop Menu */}
-      <div className="hidden md:flex gap-6 text-lg font-medium">
+      <div className="hidden md:flex gap-6 text-lg font-medium items-center">
         <Link href="/" className="hover:text-yellow-400 transition">
           Home
         </Link>
@@ -69,6 +80,23 @@ const Navbar = () => {
         <Link href="/about" className="hover:text-yellow-400 transition">
           About
         </Link>
+
+        {/* Search Bar (Desktop) */}
+        <form onSubmit={handleSearch} className="relative ml-4">
+          <input
+            type="text"
+            placeholder="Search movies..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="bg-gray-700 px-4 py-2 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
+          />
+          <button
+            type="submit"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-yellow-400"
+          >
+            <Search size={18} />
+          </button>
+        </form>
       </div>
 
       {/* Mobile Button */}
@@ -137,6 +165,26 @@ const Navbar = () => {
                   </Link>
                 </motion.div>
               ))}
+
+              {/* Search Bar (Mobile) */}
+              <form
+                onSubmit={handleSearch}
+                className="flex items-center gap-2 w-4/5 mt-4"
+              >
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="bg-gray-700 flex-1 px-4 py-2 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                />
+                <button
+                  type="submit"
+                  className="text-gray-400 hover:text-yellow-400"
+                >
+                  <Search size={20} />
+                </button>
+              </form>
             </motion.div>
           </>
         )}
