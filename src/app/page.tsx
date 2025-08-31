@@ -63,7 +63,7 @@ export default function HomePage() {
   const currentMovie = movies[currentBanner];
 
   return (
-    <main className="bg-gray-900 min-h-screen text-white">
+    <main className="bg-black min-h-screen text-white">
       {/* Banner Section */}
       <div className="relative w-full h-[70vh] overflow-hidden">
         <AnimatePresence mode="wait">

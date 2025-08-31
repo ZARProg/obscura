@@ -62,22 +62,22 @@ const Navbar = () => {
         damping: 20,
         duration: 0.5,
       }}
-      className="bg-gray-800 text-white px-6 py-4 flex items-center justify-between shadow-md fixed top-0 left-0 w-full z-50"
+      className="bg-black text-white px-6 py-4 flex items-center justify-between shadow-md fixed top-0 left-0 w-full z-50"
     >
       {/* Logo */}
-      <Link href="/" className="text-2xl font-bold text-yellow-400">
-        MovieApp
+      <Link href="/" className="text-2xl font-bold text-red-700">
+        OBSCURA
       </Link>
 
       {/* Desktop Menu */}
       <div className="hidden md:flex gap-6 text-lg font-medium items-center">
-        <Link href="/" className="hover:text-yellow-400 transition">
+        <Link href="/" className="hover:text-red-700 transition">
           Home
         </Link>
-        <Link href="/movies" className="hover:text-yellow-400 transition">
+        <Link href="/movies" className="hover:text-red-700 transition">
           Movies
         </Link>
-        <Link href="/about" className="hover:text-yellow-400 transition">
+        <Link href="/about" className="hover:text-red-700 transition">
           About
         </Link>
 
@@ -88,11 +88,11 @@ const Navbar = () => {
             placeholder="Search movies..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-gray-700 px-4 py-2 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
+            className="bg-black px-4 py-2 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-red-700"
           />
           <button
             type="submit"
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-yellow-400"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-700"
           >
             <Search size={18} />
           </button>
@@ -158,7 +158,7 @@ const Navbar = () => {
                 <motion.div key={idx} variants={linkVariants}>
                   <Link
                     href={item === "Home" ? "/" : `/${item.toLowerCase()}`}
-                    className="hover:text-yellow-400"
+                    className="hover:text-red-700"
                     onClick={() => setIsOpen(false)}
                   >
                     {item}
@@ -176,11 +176,11 @@ const Navbar = () => {
                   placeholder="Search..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-gray-700 flex-1 px-4 py-2 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                  className="bg-gray-900 flex-1 px-4 py-2 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-red-700"
                 />
                 <button
                   type="submit"
-                  className="text-gray-400 hover:text-yellow-400"
+                  className="text-gray-400 hover:text-red-700"
                 >
                   <Search size={20} />
                 </button>
