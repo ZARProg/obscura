@@ -58,7 +58,7 @@ export default function HomePage() {
   };
 
   if (loading)
-    return <p className="p-4 text-white bg-gray-900">Loading movies...</p>;
+    return <p className="p-4 text-white bg-black">Loading movies...</p>;
 
   const currentMovie = movies[currentBanner];
 

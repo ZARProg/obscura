@@ -39,10 +39,10 @@ export default function SearchPage() {
   }, [query]);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white px-6 py-24">
+    <div className="min-h-screen bg-black text-white px-6 py-24">
       <h1 className="text-3xl font-bold mb-6">
         Search Results for:{" "}
-        <span className="text-yellow-400">{query || "..."}</span>
+        <span className="text-red-700">{query || "..."}</span>
       </h1>
 
       {loading ? (
@@ -67,7 +67,7 @@ export default function SearchPage() {
                 <Link
                   key={`${item.media_type}-${item.id}`}
                   href={href}
-                  className="group bg-gray-800 rounded-lg overflow-hidden shadow-md hover:scale-105 transition-transform"
+                  className="group bg-black rounded-lg overflow-hidden shadow-md hover:scale-105 transition-transform"
                 >
                   {item.poster_path ? (
                     <img
@@ -79,7 +79,7 @@ export default function SearchPage() {
                     <NoImage className="w-full h-[350px]" alt={title} />
                   )}
                   <div className="p-3">
-                    <h2 className="text-lg font-semibold group-hover:text-yellow-400 line-clamp-1">
+                    <h2 className="text-lg font-semibold group-hover:text-red-700 line-clamp-1">
                       {title}
                     </h2>
                     <p className="text-sm text-gray-400">{year}</p>
