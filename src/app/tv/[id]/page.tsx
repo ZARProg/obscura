@@ -1,22 +1,22 @@
 import { notFound } from "next/navigation";
 
-interface MovieDetailProps {
+interface TvDetailProps {
   params: { id: string };
 }
 
-export default async function MovieDetailPage({ params }: MovieDetailProps) {
-  const [movie, videos] = await Promise.all([
+export default async function TvDetailPage({ params }: TvDetailProps) {
+  const [tv, videos] = await Promise.all([
     fetch(
-      `https://api.themoviedb.org/3/movie/${params.id}?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}&language=en-US`,
+      `https://api.themoviedb.org/3/tv/${params.id}?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}&language=en-US`,
       { cache: "no-store" }
     ).then((res) => res.json()),
     fetch(
-      `https://api.themoviedb.org/3/movie/${params.id}/videos?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}&language=en-US`,
+      `https://api.themoviedb.org/3/tv/${params.id}/videos?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}&language=en-US`,
       { cache: "no-store" }
     ).then((res) => res.json()),
   ]);
 
-  if (!movie || movie.success === false) return notFound();
+  if (!tv || tv.success === false) return notFound();
 
   const trailer = videos?.results?.find(
     (v: any) => v.type === "Trailer" && v.site === "YouTube"
@@ -27,18 +27,18 @@ export default async function MovieDetailPage({ params }: MovieDetailProps) {
       {/* Hero Section */}
       <div className="relative w-full flex flex-col md:flex-row items-start p-6 max-w-5xl mx-auto">
         <img
-          src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
-          alt={movie.title}
+          src={`https://image.tmdb.org/t/p/w500${tv.poster_path}`}
+          alt={tv.name}
           className="w-64 h-auto rounded-2xl shadow-lg"
         />
         <div className="mt-6 md:mt-0 md:ml-8 flex-1">
-          <h1 className="text-4xl font-bold">{movie.title}</h1>
-          <p className="text-gray-300 mt-2">{movie.tagline}</p>
+          <h1 className="text-4xl font-bold">{tv.name}</h1>
+          <p className="text-gray-300 mt-2">{tv.tagline}</p>
           <p className="text-gray-400 text-sm mt-1">
-            {movie.release_date} • {movie.runtime} min
+            {tv.first_air_date} • {tv.number_of_seasons} Season(s)
           </p>
           <div className="mt-4">
-            <p className="text-gray-300">{movie.overview}</p>
+            <p className="text-gray-300">{tv.overview}</p>
           </div>
 
           {trailer && (
