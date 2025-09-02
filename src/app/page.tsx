@@ -1,75 +1,110 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { fetchTrendingMovies } from "@/lib/tmdb";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import TrailerModal from "@/components/TrailerModal";
+import {
+  fetchTrendingMovies,
+  fetchDiscoverTVByLanguage,
+  fetchDiscoverMovieByRegion,
+  fetchMovieTrailer,
+  fetchTVTrailer,
+  getPosterUrl,
+} from "@/lib/tmdb";
+import { motion, AnimatePresence } from "framer-motion";
+
+type Item = any;
 
 export default function HomePage() {
-  const [movies, setMovies] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [currentBanner, setCurrentBanner] = useState(0);
+  const [trending, setTrending] = useState<Item[]>([]);
+  const [loadingTrending, setLoadingTrending] = useState(true);
+  const [bannerIndex, setBannerIndex] = useState(0);
 
-  // Modal trailer
+  const [kdrama, setKdrama] = useState<Item[]>([]);
+  const [cdrama, setCdrama] = useState<Item[]>([]);
+  const [hollywood, setHollywood] = useState<Item[]>([]);
+  const [loadingSections, setLoadingSections] = useState(false);
+
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
   const [trailerKey, setTrailerKey] = useState<string | null>(null);
 
+  const kRef = useRef<HTMLDivElement | null>(null);
+  const cRef = useRef<HTMLDivElement | null>(null);
+  const hRef = useRef<HTMLDivElement | null>(null);
+
+  // trending
   useEffect(() => {
-    async function getMovies() {
+    const load = async () => {
+      setLoadingTrending(true);
       try {
-        const data = await fetchTrendingMovies();
-        setMovies(data.results || []);
-      } catch (error) {
-        console.error(error);
+        const data = await fetchTrendingMovies(1);
+        setTrending(data.results || []);
+      } catch (err) {
+        console.error(err);
       } finally {
-        setLoading(false);
+        setLoadingTrending(false);
       }
-    }
-    getMovies();
+    };
+    load();
   }, []);
 
-  // Auto slide banner tiap 5 detik
+  // banner auto slide
   useEffect(() => {
-    if (movies.length === 0) return;
-    const interval = setInterval(() => {
-      setCurrentBanner((prev) => (prev + 1) % movies.length);
+    if (trending.length === 0) return;
+    const t = setInterval(() => {
+      setBannerIndex((s) => (s + 1) % trending.length);
     }, 5000);
-    return () => clearInterval(interval);
-  }, [movies]);
+    return () => clearInterval(t);
+  }, [trending]);
 
-  // Fetch trailer dari TMDB
-  const handlePlayTrailer = async (movieId: number) => {
+  // discover categories
+  useEffect(() => {
+    const loadSections = async () => {
+      setLoadingSections(true);
+      try {
+        const [kData, cData, hData] = await Promise.all([
+          fetchDiscoverTVByLanguage("ko", 1),
+          fetchDiscoverTVByLanguage("zh", 1),
+          fetchDiscoverMovieByRegion("US", 1),
+        ]);
+
+        setKdrama(kData.results?.slice(0,10) || []);
+        setCdrama(cData.results?.slice(0, 10) || []);
+        setHollywood(hData.results?.slice(0, 10) || []);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoadingSections(false);
+      }
+    };
+    loadSections();
+  }, []);
+
+  const handlePlayTrailer = async (item: Item) => {
     try {
-      const res = await fetch(
-        `https://api.themoviedb.org/3/movie/${movieId}/videos?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}&language=en-US`
-      );
-      const data = await res.json();
-      const trailer = data.results.find(
-        (vid: any) => vid.type === "Trailer" && vid.site === "YouTube"
-      );
-      setTrailerKey(trailer ? trailer.key : null);
+      let key: string | null = null;
+      if (item.media_type === "tv" || item.first_air_date) {
+        key = await fetchTVTrailer(item.id);
+      } else {
+        key = await fetchMovieTrailer(item.id);
+      }
+      setTrailerKey(key);
       setIsTrailerOpen(true);
-    } catch (error) {
-      console.error("Error fetching trailer:", error);
+    } catch (err) {
+      console.error("Trailer error:", err);
       setTrailerKey(null);
       setIsTrailerOpen(true);
     }
   };
 
-  if (loading)
-    return <p className="p-4 text-white bg-black">Loading movies...</p>;
-
-  const currentMovie = movies[currentBanner];
-
   return (
     <main className="bg-black min-h-screen text-white">
-      {/* Banner Section */}
-      <div className="relative w-full h-[70vh] overflow-hidden">
+      {/* Banner */}
+      <div className="relative w-full h-screen overflow-hidden pt-0">
         <AnimatePresence mode="wait">
-          {currentMovie && (
+          {trending[bannerIndex] && (
             <motion.div
-              key={currentMovie.id}
+              key={trending[bannerIndex].id}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -77,25 +112,27 @@ export default function HomePage() {
               className="absolute inset-0"
             >
               <img
-                src={`https://image.tmdb.org/t/p/original${currentMovie.backdrop_path}`}
-                alt={currentMovie.title}
+                src={`https://image.tmdb.org/t/p/original${trending[bannerIndex].poster_path}`}
+                alt={trending[bannerIndex].title || trending[bannerIndex].name}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
-              <div className="absolute bottom-10 left-8 max-w-xl">
-                <h2 className="text-3xl md:text-5xl font-bold mb-4">
-                  {currentMovie.title}
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+              <div className="absolute bottom-16 left-8 max-w-xl">
+                <h2 className="text-3xl md:text-5xl font-bold mb-4 line-clamp-2">
+                  {trending[bannerIndex].title || trending[bannerIndex].name}
                 </h2>
-                <p className="mb-4 line-clamp-3">{currentMovie.overview}</p>
+                <p className="mb-4 max-w-md line-clamp-3">
+                  {trending[bannerIndex].overview}
+                </p>
                 <div className="flex gap-3">
                   <button
-                    onClick={() => handlePlayTrailer(currentMovie.id)}
+                    onClick={() => handlePlayTrailer(trending[bannerIndex])}
                     className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg"
                   >
                     ▶ Play Trailer
                   </button>
                   <Link
-                    href={`/movie/${currentMovie.id}`}
+                    href={`/movie/${trending[bannerIndex].id}`}
                     className="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-lg"
                   >
                     Details
@@ -105,79 +142,82 @@ export default function HomePage() {
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* Prev / Next */}
-        <button
-          onClick={() =>
-            setCurrentBanner((prev) => (prev - 1 + movies.length) % movies.length)
-          }
-          className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 p-3 rounded-full"
-        >
-          ‹
-        </button>
-        <button
-          onClick={() => setCurrentBanner((prev) => (prev + 1) % movies.length)}
-          className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 p-3 rounded-full"
-        >
-          ›
-        </button>
-
-        {/* Indicator Dots */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-          {movies.map((_, idx) => (
-            <button
-              key={idx}
-              onClick={() => setCurrentBanner(idx)}
-              className={`w-3 h-3 rounded-full transition-all ${
-                idx === currentBanner
-                  ? "bg-white scale-110"
-                  : "bg-gray-500 hover:bg-gray-400"
-              }`}
-            />
-          ))}
-        </div>
       </div>
 
-      {/* Grid poster */}
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-6">Trending Movies</h1>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          {movies.map((movie) => (
-            <Link
-              href={`/movie/${movie.id}`}
-              key={movie.id}
-              className="group relative overflow-hidden rounded-lg"
-            >
-              {movie.poster_path ? (
-                <motion.img
-                  src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
-                  alt={movie.title}
-                  className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
-                  whileHover={{ scale: 1.05 }}
-                />
-              ) : (
-                <div className="bg-gray-700 h-60 flex items-center justify-center">
-                  No Image
-                </div>
-              )}
-              <motion.div
-                className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
-                initial={{ opacity: 0 }}
-                whileHover={{ opacity: 1 }}
-              >
-                <p className="text-sm text-center px-2">{movie.title}</p>
-              </motion.div>
-            </Link>
-          ))}
-        </div>
+      <div className="container mx-auto px-6 py-8">
+        <Section title="K-Drama" items={kdrama} loading={loadingSections} />
+        <Section title="C-Drama" items={cdrama} loading={loadingSections} />
+        <Section title="Hollywood" items={hollywood} loading={loadingSections} />
       </div>
 
-      {/* Trailer Modal */}
       <TrailerModal
         isOpen={isTrailerOpen}
         onClose={() => setIsTrailerOpen(false)}
         trailerKey={trailerKey}
       />
     </main>
+  );
+}
+
+function Section({
+  title,
+  items,
+  loading,
+}: {
+  title: string;
+  items: Item[];
+  loading: boolean;
+}) {
+  return (
+    <section id={title.toLowerCase()} className="mb-12 scroll-mt-20">
+      <h3 className="text-2xl font-bold mb-4">{title}</h3>
+      {loading ? (
+        <div className="flex gap-4 overflow-x-auto" />
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          {items.map((it: any) => {
+            const poster = it.poster_path
+              ? `https://image.tmdb.org/t/p/w500${it.poster_path}`
+              : "/no-poster.png";
+            const titleStr = it.title || it.name || "Untitled";
+            const year =
+              (it.release_date && it.release_date.split("-")[0]) ||
+              (it.first_air_date && it.first_air_date.split("-")[0]) ||
+              "N/A";
+            return (
+              <div
+                key={`${it.id}-${it.media_type || (it.first_air_date ? "tv" : "movie")}`}
+                className="group bg-black rounded-lg overflow-hidden shadow-md"
+              >
+                <img
+                  src={poster}
+                  alt={titleStr}
+                  className="w-full h-[300px] object-cover"
+                />
+                <div className="p-3">
+                  <h4 className="font-semibold text-sm line-clamp-2">
+                    {titleStr}
+                  </h4>
+                  <p className="text-xs text-gray-400">{year}</p>
+                  {it.vote_average && (
+                    <p className="text-xs text-yellow-400 mt-1">
+                      ⭐ {it.vote_average.toFixed(1)}
+                    </p>
+                  )}
+                  <div className="mt-2">
+                    <Link
+                      href={`/${it.first_air_date ? "tv" : "movie"}/${it.id}`}
+                      className="text-sm text-gray-300 hover:text-red-500"
+                    >
+                      Details
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
   );
 }

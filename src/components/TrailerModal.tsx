@@ -26,7 +26,7 @@ export default function TrailerModal({
           <iframe
             width="100%"
             height="100%"
-            src={`https://www.youtube.com/embed/${trailerKey}`}
+            src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1`}
             title="Trailer"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen

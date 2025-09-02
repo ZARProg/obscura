@@ -3,6 +3,9 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { fetchMultiSearch, fetchPersonCredits } from "@/lib/tmdb";
+import NoResults from "@/components/NoResults";
+import SkeletonCard from "@/components/SkeletonCard";
+
 
 interface SearchResult {
   id: number;
@@ -24,31 +27,37 @@ export default function SearchPage() {
   const router = useRouter();
 
   const query = searchParams.get("query") || "";
-  const pageParam = Number(searchParams.get("page")) || 1;
+  const pageParam = Math.max(1, Number(searchParams.get("page")) || 1);
 
-  const [results, setResults] = useState<SearchResult[]>([]);
+  const [allResults, setAllResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(true);
+  const [personMode, setPersonMode] = useState(false);
   const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     if (!query) return;
 
-    const fetchResults = async () => {
+    let cancelled = false;
+
+    const run = async () => {
       setLoading(true);
       try {
-        const data = await fetchMultiSearch(query, pageParam);
-        let finalResults: SearchResult[] = Array.isArray(data.results)
-          ? data.results
+        const probe = await fetchMultiSearch(query, 1);
+        const probeResults: SearchResult[] = Array.isArray(probe.results)
+          ? probe.results
           : [];
+        const person = probeResults.find((r) => r.media_type === "person");
 
-        // 🔥 kalau hasil utama adalah "person", fetch juga semua movie/TV nya
-        const person = finalResults.find((r) => r.media_type === "person");
         if (person) {
           const credits = await fetchPersonCredits(person.id.toString());
+          let finalResults: SearchResult[] = [];
+
           if (credits?.cast) {
-            const mappedCredits: SearchResult[] = credits.cast.map((c: any) => ({
+            finalResults = credits.cast.map((c: any) => ({
               id: c.id,
-              media_type: c.media_type,
+              media_type:
+                (c.media_type as "movie" | "tv") ||
+                (c.first_air_date ? "tv" : "movie"),
               title: c.title,
               name: c.name,
               poster_path: c.poster_path,
@@ -56,33 +65,71 @@ export default function SearchPage() {
               first_air_date: c.first_air_date,
               vote_average: c.vote_average,
             }));
-
-            // tambahkan movie/TV ke hasil search
-            finalResults = [person, ...mappedCredits];
+            finalResults = [person, ...finalResults];
+          } else {
+            finalResults = [person];
           }
-        }
 
-        setResults(finalResults);
-        setTotalPages(Number(data.total_pages) || 1);
+          const unique = Array.from(
+            new Map(
+              finalResults.map((it) => [`${it.media_type}-${it.id}`, it])
+            ).values()
+          );
+
+          if (cancelled) return;
+          setPersonMode(true);
+          setAllResults(unique);
+          setTotalPages(Math.max(1, Math.ceil(unique.length / ITEMS_PER_PAGE)));
+        } else {
+          const data = await fetchMultiSearch(query, pageParam);
+          const pageResults: SearchResult[] = Array.isArray(data.results)
+            ? data.results
+            : [];
+
+          const uniquePage = Array.from(
+            new Map(
+              pageResults.map((it) => [`${it.media_type}-${it.id}`, it])
+            ).values()
+          );
+
+          if (cancelled) return;
+          setPersonMode(false);
+          setAllResults(uniquePage);
+          const totalResultsCount =
+            Number(data.total_results) || uniquePage.length;
+          setTotalPages(
+            Math.max(1, Math.ceil(totalResultsCount / ITEMS_PER_PAGE))
+          );
+        }
       } catch (err) {
         console.error("Error fetching search results:", err);
-        setResults([]);
+        if (cancelled) return;
+        setPersonMode(false);
+        setAllResults([]);
         setTotalPages(1);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
-    fetchResults();
+    run();
+    return () => {
+      cancelled = true;
+    };
   }, [query, pageParam]);
 
   const handlePageChange = (newPage: number) => {
-    router.push(`/search?query=${encodeURIComponent(query)}&page=${newPage}`);
+    const clamped = Math.max(1, Math.min(newPage, totalPages));
+    router.push(`/search?query=${encodeURIComponent(query)}&page=${clamped}`);
   };
 
   const pageItems = useMemo(() => {
-    return results.slice(0, ITEMS_PER_PAGE);
-  }, [results]);
+    if (personMode) {
+      const start = (pageParam - 1) * ITEMS_PER_PAGE;
+      return allResults.slice(start, start + ITEMS_PER_PAGE);
+    }
+    return allResults.slice(0, ITEMS_PER_PAGE);
+  }, [allResults, pageParam, personMode]);
 
   const getPoster = (item: SearchResult) => {
     if (item.media_type === "person") {
@@ -97,25 +144,37 @@ export default function SearchPage() {
 
   return (
     <div className="min-h-screen bg-black text-white px-6 py-24">
-      <h1 className="text-3xl font-bold mb-6">
-        Search Results for:{" "}
-        <span className="text-red-700">{query || "..."}</span>
-      </h1>
+      {/* Header hanya muncul kalau ada hasil */}
+      {!loading && pageItems.length > 0 && (
+        <h1 className="text-3xl font-bold mb-6">
+          Results For: <span className="text-red-700">{query}</span>
+        </h1>
+      )}
 
       {loading ? (
-        // Skeleton
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+        <div
+          className={`grid gap-6 ${
+            personMode
+              ? "grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8"
+              : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+          }`}
+        >
           {Array.from({ length: ITEMS_PER_PAGE }).map((_, idx) => (
-            <div
+            <SkeletonCard
               key={idx}
-              className="bg-gray-800 animate-pulse rounded-lg h-[400px]"
+              variant={personMode ? "mini" : "default"}
             />
           ))}
         </div>
       ) : pageItems.length > 0 ? (
         <>
-          {/* Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+          <div
+            className={`grid gap-6 ${
+              personMode
+                ? "grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8"
+                : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+            }`}
+          >
             {pageItems.map((item) => {
               const title = item.title || item.name || "Untitled";
               const year =
@@ -140,7 +199,9 @@ export default function SearchPage() {
                   <img
                     src={getPoster(item)}
                     alt={title}
-                    className="w-full h-[350px] object-cover"
+                    className={`w-full ${
+                      personMode ? "h-[150px]" : "h-[350px]"
+                    } object-cover`}
                     onError={(e) => {
                       (e.currentTarget as HTMLImageElement).src =
                         FALLBACK_POSTER;
@@ -156,11 +217,15 @@ export default function SearchPage() {
                   </span>
 
                   <div className="p-3">
-                    <h2 className="text-lg font-semibold group-hover:text-red-700 line-clamp-1">
+                    <h2
+                      className={`${
+                        personMode ? "text-sm" : "text-lg"
+                      } font-semibold group-hover:text-red-700 line-clamp-1`}
+                    >
                       {title}
                     </h2>
                     {item.media_type === "person" ? (
-                      <p className="text-sm text-gray-400">Actor/Actress</p>
+                      <p className="text-xs text-gray-400">Actor/Actress</p>
                     ) : (
                       <>
                         <p className="text-sm text-gray-400">{year}</p>
@@ -177,7 +242,6 @@ export default function SearchPage() {
             })}
           </div>
 
-          {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex justify-center items-center gap-4 mt-8">
               <button
@@ -188,7 +252,7 @@ export default function SearchPage() {
                 Prev
               </button>
               <span className="text-sm text-gray-400">
-                Page {pageParam} of {totalPages}
+                Page {Math.min(pageParam, totalPages)} of {totalPages}
               </span>
               <button
                 disabled={pageParam >= totalPages}
@@ -201,7 +265,7 @@ export default function SearchPage() {
           )}
         </>
       ) : (
-        <p className="text-gray-400">No results found.</p>
+        <NoResults query={query} loading={loading} />
       )}
     </div>
   );
