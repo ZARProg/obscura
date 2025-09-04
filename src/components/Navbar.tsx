@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Menu, X, Search, User } from "lucide-react";
+import { Menu, Search, User, Home, Info } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const Navbar = () => {
@@ -36,76 +36,139 @@ const Navbar = () => {
   };
 
   return (
-    <motion.nav
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: showNavbar ? 0 : -80 }}
-      transition={{ type: "spring", stiffness: 120, damping: 20 }}
-      className="bg-black text-white px-6 py-4 flex items-center justify-between shadow-md fixed top-0 left-0 w-full z-50"
-    >
-      <Link href="/" className="text-2xl font-bold text-red-700">
-        OBSCURA
-      </Link>
+    <>
+      {/* NAVBAR */}
+      <motion.nav
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: showNavbar ? 0 : -80 }}
+        transition={{ type: "spring", stiffness: 120, damping: 20 }}
+        className="bg-black text-white px-6 py-4 flex items-center justify-between shadow-md fixed top-0 left-0 w-full z-50"
+      >
+        {/* MOBILE: hamburger kiri (hanya muncul saat sidebar tertutup) */}
+        <div className="md:hidden flex items-center gap-2">
+          <AnimatePresence>
+            {!isOpen && (
+              <motion.button
+                key="hamburger"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.2 }}
+                onClick={() => setIsOpen(true)}
+                className="p-2"
+              >
+                <Menu size={28} />
+              </motion.button>
+            )}
+          </AnimatePresence>
+        </div>
 
-      {/* Desktop Menu */}
-      <div className="hidden md:flex gap-6 text-lg font-medium items-center">
-        <Link href="/" className="hover:text-red-700 transition">Home</Link>
-        <Link href="/about" className="hover:text-red-700 transition">About</Link>
-
-        <form onSubmit={handleSearch} className="relative ml-4">
-          <input
-            type="text"
-            placeholder="Search movies..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-black px-4 py-2 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-red-700"
-          />
-          <button
-            type="submit"
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-700"
-          >
-            <Search size={18} />
-          </button>
-        </form>
-
-        {/* Profile */}
-        <Link href="/account" className="flex items-center gap-2 ml-4 hover:text-red-700 transition">
-          <User size={20} /> Account
+        {/* Logo */}
+        <Link
+          href="/"
+          className="text-2xl font-bold text-red-700 md:static md:ml-0 md:mr-auto"
+        >
+          OBSCURA
         </Link>
-      </div>
 
-      {/* Mobile */}
-      <div className="md:hidden">
-        <button onClick={() => setIsOpen(!isOpen)} className="p-2">
-          {isOpen ? <X size={28} /> : <Menu size={28} />}
-        </button>
-      </div>
+        {/* Desktop Menu */}
+        <div className="hidden md:flex gap-6 text-lg font-medium items-center">
+          <Link href="/" className="hover:text-red-700 transition">
+            Home
+          </Link>
+          <Link href="/about" className="hover:text-red-700 transition">
+            About
+          </Link>
 
+          <form onSubmit={handleSearch} className="relative ml-4">
+            <input
+              type="text"
+              placeholder="Search movies..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="bg-black px-4 py-2 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-red-700"
+            />
+            <button
+              type="submit"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-700"
+            >
+              <Search size={18} />
+            </button>
+          </form>
+
+          <Link
+            href="/account"
+            className="flex items-center gap-2 ml-4 hover:text-red-700 transition"
+          >
+            <User size={20} /> Account
+          </Link>
+        </div>
+      </motion.nav>
+
+      {/* OVERLAY */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 z-40 md:hidden"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      {/* MOBILE SIDEBAR */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="absolute top-full left-0 w-full bg-gray-800 flex flex-col items-center gap-6 py-6 text-lg font-medium md:hidden shadow-md z-50"
+            key="sidebar"
+            initial={{ x: "-100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "-100%" }}
+            transition={{ duration: 0.3 }}
+            className="fixed top-0 left-0 h-full w-64 
+                       bg-black/80 backdrop-blur-md 
+                       z-50 md:hidden flex flex-col"
           >
-            <Link href="/" onClick={() => setIsOpen(false)}>Home</Link>
-            <Link href="/about" onClick={() => setIsOpen(false)}>About</Link>
-            <Link href="/account" onClick={() => setIsOpen(false)}>Account</Link>
-
-            <form onSubmit={handleSearch} className="flex items-center gap-2 w-4/5 mt-4">
+            {/* NAV LINK */}
+            <form
+              onSubmit={handleSearch}
+              className="flex items-center gap-2 px-4 mt-6"
+            >
               <input
                 type="text"
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-gray-900 flex-1 px-4 py-2 rounded-full text-sm"
+                className="bg-black/60 px-4 py-2 rounded-full text-white text-sm focus:outline-none focus:ring-2 focus:ring-red-700 w-full"
               />
-              <button type="submit"><Search size={20} /></button>
             </form>
+            
+            <nav className="flex flex-col mt-8 space-y-4 px-4 text-lg font-medium">
+              <Link
+                href="/"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 text-white hover:text-red-700 transition-colors"
+              >
+                <Home size={20} /> Home
+              </Link>
+
+              <Link
+                href="/about"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 text-white hover:text-red-700 transition-colors"
+              >
+                <Info size={20} /> About
+              </Link>
+
+              <Link
+                href="/account"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 text-white hover:text-red-700 transition-colors"
+              >
+                <User size={20} /> Account
+              </Link>
+            </nav>
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.nav>
+    </>
   );
 };
 

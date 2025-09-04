@@ -1,6 +1,5 @@
 "use client";
-
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import TrailerModal from "@/components/TrailerModal";
 import {
@@ -9,98 +8,76 @@ import {
   fetchDiscoverMovieByRegion,
   fetchMovieTrailer,
   fetchTVTrailer,
-  getPosterUrl,
+  fetchNewThisWeek,
+  fetchAnimation,
 } from "@/lib/tmdb";
 import { motion, AnimatePresence } from "framer-motion";
+
+// Tambahan Swiper
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Navigation } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/navigation";
 
 type Item = any;
 
 export default function HomePage() {
   const [trending, setTrending] = useState<Item[]>([]);
-  const [loadingTrending, setLoadingTrending] = useState(true);
   const [bannerIndex, setBannerIndex] = useState(0);
 
+  const [newThisWeek, setNewThisWeek] = useState<Item[]>([]);
   const [kdrama, setKdrama] = useState<Item[]>([]);
   const [cdrama, setCdrama] = useState<Item[]>([]);
   const [hollywood, setHollywood] = useState<Item[]>([]);
-  const [loadingSections, setLoadingSections] = useState(false);
+  const [anime, setAnime] = useState<Item[]>([]);
 
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
   const [trailerKey, setTrailerKey] = useState<string | null>(null);
 
-  const kRef = useRef<HTMLDivElement | null>(null);
-  const cRef = useRef<HTMLDivElement | null>(null);
-  const hRef = useRef<HTMLDivElement | null>(null);
-
-  // trending
   useEffect(() => {
-    const load = async () => {
-      setLoadingTrending(true);
-      try {
-        const data = await fetchTrendingMovies(1);
-        setTrending(data.results || []);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoadingTrending(false);
-      }
-    };
-    load();
+    (async () => {
+      const data = await fetchTrendingMovies();
+      setTrending(data.results || []);
+    })();
   }, []);
 
-  // banner auto slide
   useEffect(() => {
-    if (trending.length === 0) return;
+    if (!trending.length) return;
     const t = setInterval(() => {
-      setBannerIndex((s) => (s + 1) % trending.length);
+      setBannerIndex((i) => (i + 1) % trending.length);
     }, 5000);
     return () => clearInterval(t);
   }, [trending]);
 
-  // discover categories
   useEffect(() => {
-    const loadSections = async () => {
-      setLoadingSections(true);
-      try {
-        const [kData, cData, hData] = await Promise.all([
-          fetchDiscoverTVByLanguage("ko", 1),
-          fetchDiscoverTVByLanguage("zh", 1),
-          fetchDiscoverMovieByRegion("US", 1),
-        ]);
-
-        setKdrama(kData.results?.slice(0,10) || []);
-        setCdrama(cData.results?.slice(0, 10) || []);
-        setHollywood(hData.results?.slice(0, 10) || []);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoadingSections(false);
-      }
-    };
-    loadSections();
+    (async () => {
+      const [newData, kData, cData, hData, aData] = await Promise.all([
+        fetchNewThisWeek(),
+        fetchDiscoverTVByLanguage("ko"),
+        fetchDiscoverTVByLanguage("zh"),
+        fetchDiscoverMovieByRegion("US"),
+        fetchAnimation(),
+      ]);
+      setNewThisWeek(newData.results);
+      setKdrama(kData.results);
+      setCdrama(cData.results);
+      setHollywood(hData.results);
+      setAnime(aData.results);
+    })();
   }, []);
 
   const handlePlayTrailer = async (item: Item) => {
-    try {
-      let key: string | null = null;
-      if (item.media_type === "tv" || item.first_air_date) {
-        key = await fetchTVTrailer(item.id);
-      } else {
-        key = await fetchMovieTrailer(item.id);
-      }
-      setTrailerKey(key);
-      setIsTrailerOpen(true);
-    } catch (err) {
-      console.error("Trailer error:", err);
-      setTrailerKey(null);
-      setIsTrailerOpen(true);
-    }
+    let key: string | null = null;
+    if (item.first_air_date) key = await fetchTVTrailer(item.id);
+    else key = await fetchMovieTrailer(item.id);
+    setTrailerKey(key);
+    setIsTrailerOpen(true);
   };
 
   return (
-    <main className="bg-black min-h-screen text-white">
+    <main className="bg-black text-white min-h-screen">
       {/* Banner */}
-      <div className="relative w-full h-screen overflow-hidden pt-0">
+      <div className="relative w-full h-[60vh] md:h-[70vh] overflow-hidden">
         <AnimatePresence mode="wait">
           {trending[bannerIndex] && (
             <motion.div
@@ -112,16 +89,19 @@ export default function HomePage() {
               className="absolute inset-0"
             >
               <img
-                src={`https://image.tmdb.org/t/p/original${trending[bannerIndex].poster_path}`}
-                alt={trending[bannerIndex].title || trending[bannerIndex].name}
+                src={`https://image.tmdb.org/t/p/original${
+                  trending[bannerIndex].backdrop_path ||
+                  trending[bannerIndex].poster_path
+                }`}
+                alt=""
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-              <div className="absolute bottom-16 left-8 max-w-xl">
-                <h2 className="text-3xl md:text-5xl font-bold mb-4 line-clamp-2">
+              <div className="absolute bottom-8 left-6 md:left-12 max-w-xl">
+                <h2 className="text-3xl md:text-5xl font-bold mb-3">
                   {trending[bannerIndex].title || trending[bannerIndex].name}
                 </h2>
-                <p className="mb-4 max-w-md line-clamp-3">
+                <p className="mb-4 line-clamp-3">
                   {trending[bannerIndex].overview}
                 </p>
                 <div className="flex gap-3">
@@ -144,10 +124,13 @@ export default function HomePage() {
         </AnimatePresence>
       </div>
 
-      <div className="container mx-auto px-6 py-8">
-        <Section title="K-Drama" items={kdrama} loading={loadingSections} />
-        <Section title="C-Drama" items={cdrama} loading={loadingSections} />
-        <Section title="Hollywood" items={hollywood} loading={loadingSections} />
+      <div className="px-6 md:px-12 py-8 space-y-12">
+        <Section title="New This Week" items={newThisWeek} />
+        <Section title="Trending Now" items={trending} />
+        <Section title="Korean Drama" items={kdrama} />
+        <Section title="Chinese Drama" items={cdrama} />
+        <Section title="Hollywood" items={hollywood} />
+        <Section title="Anime" items={anime} />
       </div>
 
       <TrailerModal
@@ -159,65 +142,72 @@ export default function HomePage() {
   );
 }
 
-function Section({
-  title,
-  items,
-  loading,
-}: {
-  title: string;
-  items: Item[];
-  loading: boolean;
-}) {
+// Section dengan Swiper + panah
+function Section({ title, items }: { title: string; items: Item[] }) {
+  const navPrev = `prev-${title.replace(/\s+/g, "")}`;
+  const navNext = `next-${title.replace(/\s+/g, "")}`;
+
   return (
-    <section id={title.toLowerCase()} className="mb-12 scroll-mt-20">
-      <h3 className="text-2xl font-bold mb-4">{title}</h3>
-      {loading ? (
-        <div className="flex gap-4 overflow-x-auto" />
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          {items.map((it: any) => {
-            const poster = it.poster_path
-              ? `https://image.tmdb.org/t/p/w500${it.poster_path}`
-              : "/no-poster.png";
-            const titleStr = it.title || it.name || "Untitled";
-            const year =
-              (it.release_date && it.release_date.split("-")[0]) ||
-              (it.first_air_date && it.first_air_date.split("-")[0]) ||
-              "N/A";
-            return (
-              <div
-                key={`${it.id}-${it.media_type || (it.first_air_date ? "tv" : "movie")}`}
-                className="group bg-black rounded-lg overflow-hidden shadow-md"
-              >
-                <img
-                  src={poster}
-                  alt={titleStr}
-                  className="w-full h-[300px] object-cover"
-                />
-                <div className="p-3">
-                  <h4 className="font-semibold text-sm line-clamp-2">
-                    {titleStr}
-                  </h4>
-                  <p className="text-xs text-gray-400">{year}</p>
-                  {it.vote_average && (
-                    <p className="text-xs text-yellow-400 mt-1">
-                      ⭐ {it.vote_average.toFixed(1)}
-                    </p>
-                  )}
-                  <div className="mt-2">
-                    <Link
-                      href={`/${it.first_air_date ? "tv" : "movie"}/${it.id}`}
-                      className="text-sm text-gray-300 hover:text-red-500"
-                    >
-                      Details
-                    </Link>
+    <section className="relative">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-xl font-bold">{title}</h3>
+      </div>
+      <Swiper
+        modules={[Navigation]}
+        navigation={{
+          nextEl: `.${navNext}`,
+          prevEl: `.${navPrev}`,
+        }}
+        spaceBetween={16}
+        slidesPerView={"auto"}
+        grabCursor={true}
+      >
+        {items.map((it) => {
+          const poster = it.poster_path
+            ? `https://image.tmdb.org/t/p/w300${it.poster_path}`
+            : "/no-poster.png";
+          const titleStr = it.title || it.name;
+          const year =
+            it.release_date?.split("-")[0] ||
+            it.first_air_date?.split("-")[0] ||
+            "N/A";
+          return (
+            <SwiperSlide key={it.id} style={{ width: "150px" }}>
+              <Link href={`/movie/${it.id}`}>
+                <div className="bg-black rounded-lg overflow-hidden">
+                  <img
+                    src={poster}
+                    alt={titleStr}
+                    className="w-full h-[220px] object-cover"
+                  />
+                  <div className="p-2">
+                    <h4 className="text-sm font-semibold line-clamp-2">
+                      {titleStr}
+                    </h4>
+                    <p className="text-xs text-gray-400">{year}</p>
+                    {it.vote_average && (
+                      <p className="text-xs text-yellow-400">
+                        ⭐ {it.vote_average.toFixed(1)}
+                      </p>
+                    )}
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              </Link>
+            </SwiperSlide>
+          );
+        })}
+      </Swiper>
+      {/* tombol panah kiri/kanan */}
+      <button
+        className={`${navPrev} absolute top-1/2 -left-4 z-10 bg-black/60 hover:bg-black/80 text-white px-2 py-3 rounded-full`}
+      >
+        ‹
+      </button>
+      <button
+        className={`${navNext} absolute top-1/2 -right-4 z-10 bg-black/60 hover:bg-black/80 text-white px-2 py-3 rounded-full`}
+      >
+        ›
+      </button>
     </section>
   );
 }

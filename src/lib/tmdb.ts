@@ -122,3 +122,23 @@ export async function fetchDiscoverMovieByRegion(region = "US", page: number = 1
     `${BASE_URL}/discover/movie?api_key=${API_KEY}&region=${region}&with_original_language=en&sort_by=popularity.desc&page=${page}`
   );
 }
+
+// New this week (pakai release_date minggu ini)
+export async function fetchNewThisWeek(page: number = 1) {
+  // ambil release date antara 7 hari terakhir
+  const today = new Date();
+  const lastWeek = new Date(today);
+  lastWeek.setDate(today.getDate() - 7);
+  const from = lastWeek.toISOString().split("T")[0];
+  const to = today.toISOString().split("T")[0];
+  return fetchJson(
+    `${BASE_URL}/discover/movie?api_key=${API_KEY}&primary_release_date.gte=${from}&primary_release_date.lte=${to}&sort_by=popularity.desc&page=${page}`
+  );
+}
+
+// Anime (animation)
+export async function fetchAnimation(page: number = 1) {
+  return fetchJson(
+    `${BASE_URL}/discover/tv?api_key=${API_KEY}&with_genres=16&sort_by=popularity.desc&page=${page}`
+  );
+}
