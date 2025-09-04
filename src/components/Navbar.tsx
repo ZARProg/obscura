@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Menu, Search, User, Home, Info } from "lucide-react";
+import { Menu, Search, User, Home, Info, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const Navbar = () => {
@@ -35,6 +35,11 @@ const Navbar = () => {
     }
   };
 
+  const handleLogout = () => {
+    document.cookie = "authToken=; path=/; max-age=0";
+    router.push("/login");
+  };
+
   return (
     <>
       {/* NAVBAR */}
@@ -44,7 +49,7 @@ const Navbar = () => {
         transition={{ type: "spring", stiffness: 120, damping: 20 }}
         className="bg-black text-white px-6 py-4 flex items-center justify-between shadow-md fixed top-0 left-0 w-full z-50"
       >
-        {/* MOBILE: hamburger kiri (hanya muncul saat sidebar tertutup) */}
+        {/* MOBILE: hamburger kiri */}
         <div className="md:hidden flex items-center gap-2">
           <AnimatePresence>
             {!isOpen && (
@@ -78,9 +83,25 @@ const Navbar = () => {
           </Link>
           <Link href="/about" className="hover:text-red-700 transition">
             About
+          </Link>          
+
+          <Link
+            href="/account"
+            className="flex items-center gap-2 ml-4 hover:text-red-700 transition"
+          >
+            <User size={20} /> Account
           </Link>
 
-          <form onSubmit={handleSearch} className="relative ml-4">
+          {/* Logout */}
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 ml-4 hover:text-red-700 transition"
+          >
+            <LogOut size={20} /> Logout
+          </button>
+        </div>
+
+        <form onSubmit={handleSearch} className="relative ml-4">
             <input
               type="text"
               placeholder="Search movies..."
@@ -90,19 +111,11 @@ const Navbar = () => {
             />
             <button
               type="submit"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-700"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-white hover:text-red-700"
             >
               <Search size={18} />
             </button>
           </form>
-
-          <Link
-            href="/account"
-            className="flex items-center gap-2 ml-4 hover:text-red-700 transition"
-          >
-            <User size={20} /> Account
-          </Link>
-        </div>
       </motion.nav>
 
       {/* OVERLAY */}
@@ -126,7 +139,6 @@ const Navbar = () => {
                        bg-black/80 backdrop-blur-md 
                        z-50 md:hidden flex flex-col"
           >
-            {/* NAV LINK */}
             <form
               onSubmit={handleSearch}
               className="flex items-center gap-2 px-4 mt-6"
@@ -139,7 +151,7 @@ const Navbar = () => {
                 className="bg-black/60 px-4 py-2 rounded-full text-white text-sm focus:outline-none focus:ring-2 focus:ring-red-700 w-full"
               />
             </form>
-            
+
             <nav className="flex flex-col mt-8 space-y-4 px-4 text-lg font-medium">
               <Link
                 href="/"
@@ -164,6 +176,16 @@ const Navbar = () => {
               >
                 <User size={20} /> Account
               </Link>
+
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  handleLogout();
+                }}
+                className="flex items-center gap-3 text-white hover:text-red-700 transition-colors"
+              >
+                <LogOut size={20} /> Logout
+              </button>
             </nav>
           </motion.div>
         )}
