@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Menu, Search, User, Home, Info, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "./AuthProvider";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -12,6 +13,15 @@ const Navbar = () => {
   const [lastScrollY, setLastScrollY] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const router = useRouter();
+  const { user, logout, login } = useAuth();
+
+  // 🔹 Cek apakah user sudah login dari localStorage
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token && !user) {
+      login(); // restore state
+    }
+  }, [user, login]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -36,7 +46,8 @@ const Navbar = () => {
   };
 
   const handleLogout = () => {
-    document.cookie = "authToken=; path=/; max-age=0";
+    logout();
+    localStorage.removeItem("token"); // hapus token saat logout
     router.push("/login");
   };
 
@@ -83,39 +94,49 @@ const Navbar = () => {
           </Link>
           <Link href="/about" className="hover:text-red-700 transition">
             About
-          </Link>          
-
-          <Link
-            href="/account"
-            className="flex items-center gap-2 ml-4 hover:text-red-700 transition"
-          >
-            <User size={20} /> Account
           </Link>
 
-          {/* Logout */}
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 ml-4 hover:text-red-700 transition"
-          >
-            <LogOut size={20} /> Logout
-          </button>
+          {user ? (
+            <>
+              <Link
+                href="/account"
+                className="flex items-center gap-2 ml-4 hover:text-red-700 transition"
+              >
+                <User size={20} /> Account
+              </Link>
+
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 ml-4 hover:text-red-700 transition"
+              >
+                <LogOut size={20} /> Logout
+              </button>
+            </>
+          ) : (
+            <Link
+              href="/login"
+              className="flex items-center gap-2 ml-4 hover:text-red-700 transition"
+            >
+              <User size={20} /> Login
+            </Link>
+          )}
         </div>
 
         <form onSubmit={handleSearch} className="relative ml-4">
-            <input
-              type="text"
-              placeholder="Search movies..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-black px-4 py-2 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-red-700"
-            />
-            <button
-              type="submit"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-white hover:text-red-700"
-            >
-              <Search size={18} />
-            </button>
-          </form>
+          <input
+            type="text"
+            placeholder="Search movies..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="bg-black px-4 py-2 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-red-700"
+          />
+          <button
+            type="submit"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-white hover:text-red-700"
+          >
+            <Search size={18} />
+          </button>
+        </form>
       </motion.nav>
 
       {/* OVERLAY */}
@@ -169,23 +190,35 @@ const Navbar = () => {
                 <Info size={20} /> About
               </Link>
 
-              <Link
-                href="/account"
-                onClick={() => setIsOpen(false)}
-                className="flex items-center gap-3 text-white hover:text-red-700 transition-colors"
-              >
-                <User size={20} /> Account
-              </Link>
+              {user ? (
+                <>
+                  <Link
+                    href="/account"
+                    onClick={() => setIsOpen(false)}
+                    className="flex items-center gap-3 text-white hover:text-red-700 transition-colors"
+                  >
+                    <User size={20} /> Account
+                  </Link>
 
-              <button
-                onClick={() => {
-                  setIsOpen(false);
-                  handleLogout();
-                }}
-                className="flex items-center gap-3 text-white hover:text-red-700 transition-colors"
-              >
-                <LogOut size={20} /> Logout
-              </button>
+                  <button
+                    onClick={() => {
+                      setIsOpen(false);
+                      handleLogout();
+                    }}
+                    className="flex items-center gap-3 text-white hover:text-red-700 transition-colors"
+                  >
+                    <LogOut size={20} /> Logout
+                  </button>
+                </>
+              ) : (
+                <Link
+                  href="/login"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 text-white hover:text-red-700 transition-colors"
+                >
+                  <User size={20} /> Login
+                </Link>
+              )}
             </nav>
           </motion.div>
         )}

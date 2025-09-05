@@ -12,8 +12,6 @@ import {
   fetchAnimation,
 } from "@/lib/tmdb";
 import { motion, AnimatePresence } from "framer-motion";
-
-// Tambahan Swiper
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation } from "swiper/modules";
 import "swiper/css";
@@ -112,7 +110,11 @@ export default function HomePage() {
                     ▶ Play Trailer
                   </button>
                   <Link
-                    href={`/movie/${trending[bannerIndex].id}`}
+                    href={
+                      trending[bannerIndex].first_air_date
+                        ? `/tv/${trending[bannerIndex].id}`
+                        : `/movie/${trending[bannerIndex].id}`
+                    }
                     className="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-lg"
                   >
                     Details
@@ -142,7 +144,6 @@ export default function HomePage() {
   );
 }
 
-// Section dengan Swiper + panah
 function Section({ title, items }: { title: string; items: Item[] }) {
   const navPrev = `prev-${title.replace(/\s+/g, "")}`;
   const navNext = `next-${title.replace(/\s+/g, "")}`;
@@ -173,7 +174,7 @@ function Section({ title, items }: { title: string; items: Item[] }) {
             "N/A";
           return (
             <SwiperSlide key={it.id} style={{ width: "150px" }}>
-              <Link href={`/movie/${it.id}`}>
+              <Link href={it.first_air_date ? `/tv/${it.id}` : `/movie/${it.id}`}>
                 <div className="bg-black rounded-lg overflow-hidden">
                   <img
                     src={poster}
@@ -197,7 +198,7 @@ function Section({ title, items }: { title: string; items: Item[] }) {
           );
         })}
       </Swiper>
-      {/* tombol panah kiri/kanan */}
+
       <button
         className={`${navPrev} absolute top-1/2 -left-4 z-10 bg-black/60 hover:bg-black/80 text-white px-2 py-3 rounded-full`}
       >

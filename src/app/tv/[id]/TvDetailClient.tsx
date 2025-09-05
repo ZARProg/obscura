@@ -21,7 +21,9 @@ export default function TvDetailClientBanner({
       <div
         className="relative h-[400px] md:h-[500px] w-full bg-cover bg-center"
         style={{
-          backgroundImage: `url(https://image.tmdb.org/t/p/original${tv.backdrop_path || tv.poster_path})`,
+          backgroundImage: `url(https://image.tmdb.org/t/p/original${
+            tv.backdrop_path || tv.poster_path
+          })`,
         }}
       >
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 to-black/40" />
@@ -54,16 +56,26 @@ export default function TvDetailClientBanner({
       </div>
 
       {/* Overview */}
-      <div className="max-w-5xl mx-auto p-6">
-        <p className="text-gray-300">{tv.overview}</p>
+      <div className="max-w-5xl mx-auto p-6 space-y-4">
+        <p className="text-gray-300">
+          {tv.overview && tv.overview.trim() !== ""
+            ? tv.overview
+            : "No overview available"}
+        </p>
 
+        {/* Tambahan Aktor */}
         {topCast.length > 0 && (
-          <div className="mt-6">
-            <h3 className="font-semibold mb-2">Top Cast</h3>
+          <div>
+            <h3 className="font-semibold mb-2">Main Cast</h3>
             <ul className="flex gap-4 flex-wrap">
               {topCast.map((actor: any) => (
                 <li key={actor.id} className="text-sm text-gray-300">
-                  {actor.name}{" "}
+                  <Link
+                    href={`/person/${actor.id}`}
+                    className="text-blue-400 hover:underline"
+                  >
+                    {actor.name}
+                  </Link>{" "}
                   <span className="text-gray-500">as {actor.character}</span>
                 </li>
               ))}

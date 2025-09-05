@@ -1,9 +1,10 @@
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import { AuthProvider } from "@/components/AuthProvider";
 
 export const metadata = {
-  title: "MovieApp",
-  description: "Explore movies with Next.js + TMDB API",
+  title: "OBSCURA",
+  description: "Movie & Account App",
 };
 
 export default function RootLayout({
@@ -14,8 +15,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-gray-950 text-white">
-        <Navbar />
-        <main className="pt-16">{children}</main>
+        <AuthProvider>
+          <Navbar />
+          <main className="pt-16">{children}</main>
+        </AuthProvider>
       </body>
     </html>
   );
