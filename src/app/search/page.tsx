@@ -6,7 +6,6 @@ import { fetchMultiSearch, fetchPersonCredits } from "@/lib/tmdb";
 import NoResults from "@/components/NoResults";
 import SkeletonCard from "@/components/SkeletonCard";
 
-
 interface SearchResult {
   id: number;
   media_type: "movie" | "tv" | "person";
@@ -42,18 +41,18 @@ export default function SearchPage() {
     const run = async () => {
       setLoading(true);
       try {
-        const probe = await fetchMultiSearch(query, 1);
-        const probeResults: SearchResult[] = Array.isArray(probe.results)
-          ? probe.results
+        const data = await fetchMultiSearch(query, pageParam);
+        const baseResults: SearchResult[] = Array.isArray(data.results)
+          ? data.results
           : [];
-        const person = probeResults.find((r) => r.media_type === "person");
 
-        if (person) {
-          const credits = await fetchPersonCredits(person.id.toString());
-          let finalResults: SearchResult[] = [];
+        let finalResults: SearchResult[] = [...baseResults];
+        const personFound = baseResults.find((r) => r.media_type === "person");
 
+        if (personFound) {
+          const credits = await fetchPersonCredits(personFound.id.toString());
           if (credits?.cast) {
-            finalResults = credits.cast.map((c: any) => ({
+            const creditResults: SearchResult[] = credits.cast.map((c: any) => ({
               id: c.id,
               media_type:
                 (c.media_type as "movie" | "tv") ||
@@ -65,42 +64,19 @@ export default function SearchPage() {
               first_air_date: c.first_air_date,
               vote_average: c.vote_average,
             }));
-            finalResults = [person, ...finalResults];
-          } else {
-            finalResults = [person];
+            finalResults = [personFound, ...creditResults, ...finalResults];
           }
-
-          const unique = Array.from(
-            new Map(
-              finalResults.map((it) => [`${it.media_type}-${it.id}`, it])
-            ).values()
-          );
-
-          if (cancelled) return;
-          setPersonMode(true);
-          setAllResults(unique);
-          setTotalPages(Math.max(1, Math.ceil(unique.length / ITEMS_PER_PAGE)));
-        } else {
-          const data = await fetchMultiSearch(query, pageParam);
-          const pageResults: SearchResult[] = Array.isArray(data.results)
-            ? data.results
-            : [];
-
-          const uniquePage = Array.from(
-            new Map(
-              pageResults.map((it) => [`${it.media_type}-${it.id}`, it])
-            ).values()
-          );
-
-          if (cancelled) return;
-          setPersonMode(false);
-          setAllResults(uniquePage);
-          const totalResultsCount =
-            Number(data.total_results) || uniquePage.length;
-          setTotalPages(
-            Math.max(1, Math.ceil(totalResultsCount / ITEMS_PER_PAGE))
-          );
         }
+
+        const unique = Array.from(
+          new Map(finalResults.map((it) => [`${it.media_type}-${it.id}`, it])).values()
+        );
+
+        if (cancelled) return;
+        setAllResults(unique);
+        setPersonMode(!!personFound);
+        const totalResultsCount = Number(data.total_results) || unique.length;
+        setTotalPages(Math.max(1, Math.ceil(totalResultsCount / ITEMS_PER_PAGE)));
       } catch (err) {
         console.error("Error fetching search results:", err);
         if (cancelled) return;
@@ -144,13 +120,6 @@ export default function SearchPage() {
 
   return (
     <div className="min-h-screen bg-black text-white px-6 py-24">
-      {/* Header hanya muncul kalau ada hasil */}
-      {!loading && pageItems.length > 0 && (
-        <h1 className="text-3xl font-bold mb-6">
-          Results For: <span className="text-red-700">{query}</span>
-        </h1>
-      )}
-
       {loading ? (
         <div
           className={`grid gap-6 ${
@@ -203,8 +172,7 @@ export default function SearchPage() {
                       personMode ? "h-[150px]" : "h-[350px]"
                     } object-cover`}
                     onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).src =
-                        FALLBACK_POSTER;
+                      (e.currentTarget as HTMLImageElement).src = FALLBACK_POSTER;
                     }}
                   />
 

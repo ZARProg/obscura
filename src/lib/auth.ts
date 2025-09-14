@@ -1,18 +1,33 @@
-"use client";
+import { getServerSession } from "next-auth";
+import { NextAuthOptions } from "next-auth";
+import GoogleProvider from "next-auth/providers/google";
 
-export function setAuthToken(token: string) {
-  document.cookie = `authToken=${token}; path=/; max-age=3600`;
-}
+export const authOptions: NextAuthOptions = {
+  providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
+  ],
+  secret: process.env.NEXTAUTH_SECRET,
+  pages: {
+    signIn: "/login", // kalau user belum login redirect ke /login
+  },
+  callbacks: {
+    async session({ session, token }) {
+      // simpan id user dari token ke session
+      if (token.sub) {
+        session.user.id = token.sub;
+      }
+      return session;
+    },
+    async jwt({ token, account, profile }) {
+      if (account && profile) {
+        token.provider = account.provider;
+      }
+      return token;
+    },
+  },
+};
 
-export function clearAuthToken() {
-  document.cookie = "authToken=; path=/; max-age=0";
-}
-
-export function getAuthToken(): string | null {
-  const match = document.cookie.match(/(^| )authToken=([^;]+)/);
-  return match ? match[2] : null;
-}
-
-export function isAuthenticated(): boolean {
-  return !!getAuthToken();
-}
+export const getAuthSession = () => getServerSession(authOptions);

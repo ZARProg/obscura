@@ -142,3 +142,13 @@ export async function fetchAnimation(page: number = 1) {
     `${BASE_URL}/discover/tv?api_key=${API_KEY}&with_genres=16&sort_by=popularity.desc&page=${page}`
   );
 }
+
+// Popular Movies with pagination
+export async function fetchPopularMovies(page: number = 1) {
+  return fetchJson(`${BASE_URL}/movie/popular?api_key=${API_KEY}&page=${page}`);
+}
+
+// Popular TV Shows with pagination
+export async function fetchPopularTV(page: number = 1) {
+  return fetchJson(`${BASE_URL}/tv/popular?api_key=${API_KEY}&page=${page}`);
+}

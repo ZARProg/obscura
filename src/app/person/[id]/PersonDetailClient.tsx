@@ -53,9 +53,9 @@ export default function PersonDetailClient({
             {credits.cast
               .sort((a: any, b: any) => (b.popularity ?? 0) - (a.popularity ?? 0))
               .slice(0, 12)
-              .map((credit: any) => (
+              .map((credit: any, idx: number) => (
                 <div
-                  key={`${credit.media_type}-${credit.id}`}
+                  key={credit.credit_id || `${credit.media_type}-${credit.id}-${idx}`}
                   className="text-center cursor-pointer"
                   onClick={() => setSelectedItem(credit)}
                 >

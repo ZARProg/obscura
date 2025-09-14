@@ -3,26 +3,30 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/components/AuthProvider";
+import { signIn } from "next-auth/react";
+import GoogleButton from "@/components/GoogleButton";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fadeIn, setFadeIn] = useState(false);
   const router = useRouter();
-  const { login } = useAuth();
 
   useEffect(() => {
     setFadeIn(true);
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (email && password) {
+      // login manual dummy
       localStorage.setItem("token", "dummy-token");
-      login(email);
       router.push("/");
     }
+  };
+
+  const handleGoogleLogin = async () => {
+    await signIn("google", { callbackUrl: "/" });
   };
 
   return (
@@ -62,6 +66,9 @@ export default function LoginPage() {
             Sign In
           </button>
         </form>
+
+        {/* Google Login Button (reusable) */}
+        <GoogleButton onClick={handleGoogleLogin} text="Sign in with Google" />
 
         <p className="mt-6 text-center text-gray-300">
           New to OBSCURA?{" "}

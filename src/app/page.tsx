@@ -115,9 +115,9 @@ export default function HomePage() {
                         ? `/tv/${trending[bannerIndex].id}`
                         : `/movie/${trending[bannerIndex].id}`
                     }
-                    className="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-lg"
+                    className="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-lg backdrop-blur-md"
                   >
-                    Details
+                    More Info
                   </Link>
                 </div>
               </div>

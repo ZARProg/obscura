@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/components/AuthProvider";
+import { signIn } from "next-auth/react";
+import GoogleButton from "@/components/GoogleButton";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
@@ -11,7 +12,6 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fadeIn, setFadeIn] = useState(false);
   const router = useRouter();
-  const { login } = useAuth();
 
   useEffect(() => {
     setFadeIn(true);
@@ -25,9 +25,12 @@ export default function RegisterPage() {
     }
     if (email && password) {
       localStorage.setItem("token", "dummy-token");
-      login(email);
       router.push("/");
     }
+  };
+
+  const handleGoogleRegister = async () => {
+    await signIn("google", { callbackUrl: "/" });
   };
 
   return (
@@ -75,6 +78,9 @@ export default function RegisterPage() {
             Sign Up
           </button>
         </form>
+
+        {/* Google Register Button (reusable) */}
+        <GoogleButton onClick={handleGoogleRegister} text="Sign up with Google" />
 
         <p className="mt-6 text-center text-gray-300">
           Already have an account?{" "}

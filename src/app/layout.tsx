@@ -1,6 +1,7 @@
+// src/app/layout.tsx
 import "./globals.css";
 import Navbar from "@/components/Navbar";
-import { AuthProvider } from "@/components/AuthProvider";
+import Providers from "@/components/Providers";
 
 export const metadata = {
   title: "OBSCURA",
@@ -15,10 +16,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-gray-950 text-white">
-        <AuthProvider>
+        {/* Providers adalah client component yang membungkus SessionProvider */}
+        <Providers>
           <Navbar />
           <main className="pt-16">{children}</main>
-        </AuthProvider>
+        </Providers>
       </body>
     </html>
   );
